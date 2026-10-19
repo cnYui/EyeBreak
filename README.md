@@ -71,7 +71,7 @@ A pixel-art eye that looks up and to the right at a glowing guide dot, which is 
 | `assets/icon/eyebreak-icon-128.png` | The same at 128 × 128 for small previews. |
 | `agent/assets/eye.png` | Shown top right on the Page's first screen. Monochrome green on a transparent background (the display is green-only and black is see-through), 64 × 64 so each art pixel is exactly 2 × 2 and nothing is scaled. Hidden in the compact chat-card layout. |
 
-Studio does **not** read the agent icon from the repository; it is uploaded in Studio. In the international Studio it is on the **Real-device debug** tab (真机调试), section **Basic information** (基本信息): *Agent icon* → *Change icon* (更换图标), a 1:1 image is recommended. The same tab asks for the agent name, the app category (required), an intent description, and has the **Package and save** (打包并保存) button. The review documentation requires a custom icon that is clear, correctly oriented and not a plain colour or a colour with text. Upload `assets/icon/eyebreak-icon-512.png` there; that has not been done yet.
+Studio does **not** read the agent icon from the repository; it is uploaded in Studio. In the international Studio it is on the **Real-device debug** tab, section **Basic information**: *Agent icon* → *Change icon*, a 1:1 image is recommended. The same tab asks for the agent name, the app category (required), an intent description, and has the **Package and save** button. The review documentation requires a custom icon that is clear, correctly oriented and not a plain colour or a colour with text. Upload `assets/icon/eyebreak-icon-512.png` there; that has not been done yet.
 
 ## Test on the glasses
 
@@ -86,10 +86,10 @@ From the AIUI documentation (`craft.en-US.md`, "Debug on Glasses"); these steps 
 
 Use the international Studio, **https://aiui-global.rokid.com/** (sign in with your Rokid account first).
 
-1. Top left, the **New Agent** menu (新建智能体) → **GitHub import** (GitHub 导入).
-2. Enter `https://github.com/cnYui/EyeBreak/tree/main/agent` and confirm. The import root is the repository's `agent/` folder. The project opens as a draft marked "pending upload" (待上传); the remote source is read-only and nothing is written back to GitHub. Importing the same URL again updates it.
-3. On the **AIUI CODING** tab send `/debug run pages/eye/index`, then open the **Simulator** tab (模拟调试). The Page starts in the glasses simulator.
-4. The temple buttons on the right drive it: Tap (单击), Double tap (双击), Swipe forward (向前滑动), Swipe back (向后滑动). Wait two seconds between presses.
+1. Top left, the **New Agent** menu → **GitHub import** (the fourth item).
+2. Enter `https://github.com/cnYui/EyeBreak/tree/main/agent` and confirm. The import root is the repository's `agent/` folder. The project opens as a draft marked "pending upload"; the remote source is read-only and nothing is written back to GitHub. Importing the same URL again updates it.
+3. On the **AIUI CODING** tab send `/debug run pages/eye/index`, then open the **Simulator** tab. The Page starts in the glasses simulator.
+4. The temple buttons on the right drive it: Tap, Double tap, Swipe forward and Swipe back. Wait two seconds between presses.
 
 Spoken cues show up in the simulator as a "TTS" banner (for example `Left`).
 

@@ -1,7 +1,7 @@
 <script def>
 {
   "navigationBarTitleText": "Eye Break",
-  "description": "Open the Eye Break guided eye exercise: a dot moves on the display and the wearer follows it with their eyes (left and right, up and down, diagonals, circles, near and far, then a short rest). Invoke when the user says things like: my eyes are tired, eye break, eye exercise, rest my eyes, eye massage routine, 眼保健操. Pass autostart=true to begin right away. Pass pace=gentle for a slower routine.",
+  "description": "Open the Eye Break guided eye exercise: a dot moves on the display and the wearer follows it with their eyes (left and right, up and down, diagonals, circles, near and far, then a short rest). Invoke when the user says things like: my eyes are tired, eye break, eye exercise, rest my eyes, eye massage routine. Pass autostart=true to begin right away. Pass pace=gentle for a slower routine.",
   "schema": {
     "data": {
       "type": "object",

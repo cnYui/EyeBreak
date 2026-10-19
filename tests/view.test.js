@@ -142,5 +142,5 @@ test('nextPace cycles through the paces', () => {
 test('fitText cuts long text with an ellipsis and leaves short text alone', () => {
   assert.equal(fitText('short', 10), 'short');
   assert.equal(fitText('abcdefghij', 6), 'abcde…');
-  assert.equal(textUnits(fitText('测试测试测试测试', 9)) <= 9, true);
+  assert.equal(textUnits(fitText(String.fromCharCode(0x6d4b, 0x8bd5, 0x6d4b, 0x8bd5, 0x6d4b, 0x8bd5, 0x6d4b, 0x8bd5), 9)) <= 9, true);
 });
