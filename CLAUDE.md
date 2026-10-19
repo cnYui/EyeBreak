@@ -23,7 +23,8 @@ A Rokid Glasses (AIUI 0.17) guided eye break: a dot moves on the display and the
 1. `npm test` and
    `python C:/Users/yui/.claude/skills/rokid-aiui-agent/scripts/validate_aiui_project.py agent --repository-root . --target-version 0.17.0 --strict` (silent, exit 0 = pass).
 2. `npx --yes --package @yodaos-pkg/aix-cli@0.8.2 aix pack agent -o artifacts/eye-break.aix`, then `aix preview agent --html-out artifacts/preview.html`, serve `artifacts/` with `python -m http.server <port> --directory artifacts` and open it in the browser pane. Keep that tab **in the foreground**. Stop the server afterwards.
-3. Studio import needs its own GitHub repository (`https://github.com/<owner>/<repo>/tree/main/agent`); this folder is not a git repository yet. The import loop is in the WorkHealthier `CLAUDE.md`.
+3. Studio: **always the international version `https://aiui-global.rokid.com/`, never the domestic `aiui.rokid.com`** (the user's rule, 2026-10-19; also in Claude memory). The repository is `https://github.com/cnYui/EyeBreak` (public, `main`); import `https://github.com/cnYui/EyeBreak/tree/main/agent` via New Agent (新建智能体) → GitHub import (GitHub 导入), then on the AIUI CODING tab send `/debug run pages/eye/index` and open the Simulator tab (模拟调试). Re-importing the same URL updates the project. The steps are also in `README.md`.
+4. Sign-in: the built-in browser pane could not sign in to Rokid; the user's real Chrome is signed in, so drive Studio with Claude in Chrome. Never enter credentials.
 
 ## Facts learned while building (2026-10-19)
 
@@ -31,6 +32,8 @@ A Rokid Glasses (AIUI 0.17) guided eye break: a dot moves on the display and the
 - `setData` at 33 ms ran at about 30 fps in the web preview (worst gap 34–58 ms). A **hidden** browser pane throttles timers: the first prototype run reported 1 fps with a 7,979 ms gap until the tab was fronted. `requestAnimationFrame` is 0.18 only, so the Page uses `setInterval` and computes positions from elapsed time, not from frame counts.
 - Long single-line text is not clipped by `text-overflow: ellipsis` (see ClaudeCodeGlasses); every string here is held to a width budget in `agent/lib/text.js` and the tests check all texts.
 - The preview has no way to show the compact 448 × 150 card layout.
+- Studio simulator (international, 2026-10-19): the Page ran in a portrait frame (about 4:5), not 480 × 352, and the percentage-based layout adapted. The `/debug` chat message shows no reply bubble, but opening the Simulator tab shows the Page already running. The temple buttons (Tap, Double tap, Swipe forward, Swipe back) map to `Enter`, host exit, `ArrowUp`, `ArrowDown` as in the sibling projects; wait about two seconds between presses. `speechSynthesis.speak` shows as a green "TTS" banner. A glasses home screen ("say Leqi") appears after Double tap.
+- The imported project is a draft held in the Studio page ("pending upload"); keep that Chrome tab open if you still need it. The dot passes close to the top-left cue label at the corners (Y_RANGE 46 %); pulling `X_RANGE`/`Y_RANGE` in to about 44/42 would add margin (update the corner expectations in `tests/view.test.js` if you do).
 - Voice: `speechSynthesis.speak` is called, the web host answers `speech.speak is not configured` (info-level, harmless).
 - A safety hook in this environment blocks `rm -rf`; use new names instead of deleting.
 - Ink conventions inherited from the sibling projects: no `ink:for`, static class on the `<page>` root, dynamic classes on views, `@media` rules are single-class selectors, QuickJS (`Date.now()` only, no `?.` / `??` in `agent/`).
