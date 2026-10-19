@@ -61,6 +61,18 @@ python -m http.server 8767 --directory artifacts      # then open http://127.0.0
 
 In the preview use the on-page buttons or the keyboard: Enter = tap, ↑ / ↓ = swipes. Keep the browser tab in the foreground: a hidden tab throttles timers and the dot stalls (a hidden run measured one frame per second).
 
+## Icon
+
+A pixel-art eye that looks up and to the right at a glowing guide dot, which is what the app does. It is drawn in code on a 32 × 32 grid (`scripts/make-icon.js`) and written in three sizes; `node scripts/make-icon.js` regenerates them and a test fails if the committed files drift from the script.
+
+| File | Use |
+| --- | --- |
+| `assets/icon/eyebreak-icon-512.png` | **The agent icon for AIUI Studio.** Full colour, square, fully opaque, 16 × 16 px blocks. |
+| `assets/icon/eyebreak-icon-128.png` | The same at 128 × 128 for small previews. |
+| `agent/assets/eye.png` | Shown top right on the Page's first screen. Monochrome green on a transparent background (the display is green-only and black is see-through), 64 × 64 so each art pixel is exactly 2 × 2 and nothing is scaled. Hidden in the compact chat-card layout. |
+
+Studio does **not** read the agent icon from the repository. It is set in Studio on the **Build & Review** tab (构建提审), where the documentation requires a custom, clear, correctly oriented icon that is not a plain colour or a colour with text. Upload `eyebreak-icon-512.png` there; that has not been done yet.
+
 ## Try it in AIUI Studio
 
 Use the international Studio, **https://aiui-global.rokid.com/** (sign in with your Rokid account first).
@@ -82,14 +94,17 @@ agent/                      AIUI Studio import root
   lib/session.js            ready → running ⇄ paused → done controller
   lib/view.js, text.js      view model and width budgets (long text is cut in JS, not by CSS)
   lib/env.js, temple.js     remembered settings, temple input arbitration
-tests/                      40 Node tests (npm test)
+  assets/eye.png            the pixel eye shown on the first screen (monochrome green, 64 x 64)
+assets/icon/                the colour agent icon for AIUI Studio (512 x 512 and 128 x 128)
+scripts/make-icon.js        draws the pixel art and writes all three PNG files (no dependencies)
+tests/                      47 Node tests (npm test)
 ```
 
 ## Verified
 
 2026-10-19, Windows 11, Node 24, `@yodaos-pkg/aix-cli` 0.8.2, AIUI 0.17.0 target:
 
-- `npm test`: 40 passing: the routine (seven steps, about 2 minutes, Gentle ×1.4, the dot stays inside the arena, every step joins at the centre, speed limit, cue timing, circle direction and radius, near/far size and brightness, the rest step hides the dot, speech phrases), the session controller (pause, resume, skip, restart, the 250 ms tick cap, finish), the view model and every text against its width budget.
+- `npm test`: 47 passing: the icon (grid, palette, valid PNGs, committed files match the generator), the routine (seven steps, about 2 minutes, Gentle ×1.4, the dot stays inside the arena, every step joins at the centre, speed limit, cue timing, circle direction and radius, near/far size and brightness, the rest step hides the dot, speech phrases), the session controller (pause, resume, skip, restart, the 250 ms tick cap, finish), the view model and every text against its width budget.
 - `validate_aiui_project.py agent --repository-root . --target-version 0.17.0 --strict`: exit 0. `aix pack`: 25 KB bundle.
 - AIX browser preview (web runtime): menu, a run through the steps with the dot at the expected places (centre, far left, far right, a diagonal, a point on the circle, large "near" dot, small "far" dot, hidden during rest), the label and `step/7 · time left` counter, progress bar, pause and resume, skipping steps, the "Well done" screen, switching to Gentle (menu then says about 3 min). Dynamic `style` binding with percentage positions and border-radius circles works; `setData` at about 30 fps with a worst gap of 34–58 ms in the preview.
 - Voice cues reach `speechSynthesis` (the web preview reports `speech.speak is not configured on Web host`, so nothing is audible there).
@@ -101,7 +116,8 @@ tests/                      40 Node tests (npm test)
 - Speech audio: Studio only shows the cues as text banners; whether they are audible, and how they sound, is untested.
 - The compact 448 × 150 chat-card layout (`@media (max-height: 240px)`): written, never viewed.
 - `autostart` and `pace` parameters, and "pause when hidden", are covered by code and unit tests of the controller but were not exercised through the host.
-- Studio's own checks (the build-and-review form, the real-device debug tab) were not used.
+- Studio's own checks (the build-and-review form, the real-device debug tab) were not used, and the icon has not been uploaded to Studio.
+- The first-screen icon was seen only in the AIX browser preview so far; not on glasses, where its brightness against the real scene is unknown.
 - Whether the routine actually relieves eye discomfort. Nothing in this project tests that, and it makes no such claim.
 
 ## Limits

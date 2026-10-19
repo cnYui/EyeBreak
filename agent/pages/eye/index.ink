@@ -263,6 +263,7 @@ export default {
 <page class="page">
   <view class="shell">
     <view class="{{menuClass}}">
+      <image class="menu-icon" src="/assets/eye.png" mode="aspectFit"></image>
       <text class="eyebrow">EYE BREAK</text>
       <text class="menu-title">{{menuTitle}}</text>
       <text class="menu-sub">{{menuSub}}</text>
@@ -333,6 +334,14 @@ export default {
 
 .screen-off {
   display: none;
+}
+
+.menu-icon {
+  position: absolute;
+  right: 16px;
+  top: 4px;
+  width: 64px;
+  height: 64px;
 }
 
 .eyebrow {
@@ -485,6 +494,9 @@ export default {
     margin-top: 2px;
     font-size: 20px;
     line-height: 24px;
+  }
+  .menu-icon {
+    display: none;
   }
   .menu-sub {
     display: none;
