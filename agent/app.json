@@ -1,0 +1,6 @@
+{
+  "pages": ["pages/eye/index"],
+  "window": {
+    "navigationBarTitleText": "Eye Break"
+  }
+}

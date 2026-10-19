@@ -1,0 +1,13 @@
+{
+  "name": "eye-break",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Eye Break: a Rokid Glasses AIUI agent that guides your eyes with a moving dot (left/right, up/down, diagonals, circles, near/far).",
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
