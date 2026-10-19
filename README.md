@@ -71,7 +71,16 @@ A pixel-art eye that looks up and to the right at a glowing guide dot, which is 
 | `assets/icon/eyebreak-icon-128.png` | The same at 128 × 128 for small previews. |
 | `agent/assets/eye.png` | Shown top right on the Page's first screen. Monochrome green on a transparent background (the display is green-only and black is see-through), 64 × 64 so each art pixel is exactly 2 × 2 and nothing is scaled. Hidden in the compact chat-card layout. |
 
-Studio does **not** read the agent icon from the repository. It is set in Studio on the **Build & Review** tab (构建提审), where the documentation requires a custom, clear, correctly oriented icon that is not a plain colour or a colour with text. Upload `eyebreak-icon-512.png` there; that has not been done yet.
+Studio does **not** read the agent icon from the repository; it is uploaded in Studio. In the international Studio it is on the **Real-device debug** tab (真机调试), section **Basic information** (基本信息): *Agent icon* → *Change icon* (更换图标), a 1:1 image is recommended. The same tab asks for the agent name, the app category (required), an intent description, and has the **Package and save** (打包并保存) button. The review documentation requires a custom icon that is clear, correctly oriented and not a plain colour or a colour with text. Upload `assets/icon/eyebreak-icon-512.png` there; that has not been done yet.
+
+## Test on the glasses
+
+From the AIUI documentation (`craft.en-US.md`, "Debug on Glasses"); these steps have not been carried out for this project yet.
+
+1. In Studio, open the **Real-device debug** tab for the imported project and fill in *Agent name* (20 characters at most; the default is `cnYui/EyeBreak`, `Eye Break` is shorter), *App category* (required) and *Intent description*; change the icon; then **Package and save**. Real-device debugging is only available after the project is bound to an agent and has been packaged and uploaded.
+2. In the Rokid AI app on the phone: **Settings > Developer**, update the glasses resource package, and wait for "Agent resource package downloaded successfully".
+3. Say to the glasses: "Leqi, open the Eye Break agent."
+4. What to look at: the pixel eye at the top right of the first screen, whether the dot is comfortable to follow (size, speed, travel range), the cue labels, the spoken cues, tap / swipe / double tap, and how the green dot looks against the real scene.
 
 ## Try it in AIUI Studio
 
@@ -116,8 +125,8 @@ tests/                      47 Node tests (npm test)
 - Speech audio: Studio only shows the cues as text banners; whether they are audible, and how they sound, is untested.
 - The compact 448 × 150 chat-card layout (`@media (max-height: 240px)`): written, never viewed.
 - `autostart` and `pace` parameters, and "pause when hidden", are covered by code and unit tests of the controller but were not exercised through the host.
-- Studio's own checks (the build-and-review form, the real-device debug tab) were not used, and the icon has not been uploaded to Studio.
-- The first-screen icon was seen only in the AIX browser preview so far; not on glasses, where its brightness against the real scene is unknown.
+- Studio's real-device debug tab and review form were looked at but not filled in: nothing was packaged or uploaded, and the icon has not been uploaded to Studio.
+- The first-screen icon was seen in the AIX browser preview and in the Studio simulator (after re-importing the same URL, which updated the project in place); not on glasses, where its brightness against the real scene is unknown.
 - Whether the routine actually relieves eye discomfort. Nothing in this project tests that, and it makes no such claim.
 
 ## Limits
