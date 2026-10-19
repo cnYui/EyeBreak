@@ -2,3 +2,5 @@ node_modules/
 artifacts/
 .DS_Store
 *.log
+# source videos you add before running scripts/prepare-videos.js
+/videos/

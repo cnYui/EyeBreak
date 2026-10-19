@@ -1,19 +1,16 @@
 <script def>
 {
   "navigationBarTitleText": "Eye Break",
-  "description": "Open the Eye Break guided eye exercise: a dot moves on the display and the wearer follows it with their eyes (left and right, up and down, diagonals, circles, near and far, then a short rest). Invoke when the user says things like: my eyes are tired, eye break, eye exercise, rest my eyes, eye massage routine. Pass autostart=true to begin right away. Pass pace=gentle for a slower routine.",
+  "description": "Open Eye Break, a short list of silent relaxation videos to watch when the eyes feel tired after long screen time. The wearer picks a video and it plays without sound. Invoke when the user says things like: my eyes are tired, eye break, rest my eyes, show me a relaxation video. Pass video=2 to play the second video right away.",
   "schema": {
     "data": {
       "type": "object",
       "properties": {
-        "autostart": {
-          "type": "boolean",
-          "description": "When true, start the routine immediately instead of waiting for a tap."
-        },
-        "pace": {
-          "type": "string",
-          "enum": ["normal", "gentle"],
-          "description": "Normal takes about two minutes; gentle is about 40 percent slower."
+        "video": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Number of the video to play right away (1 is the first in the list). Leave out to show the list."
         }
       }
     }
@@ -22,20 +19,24 @@
 </script>
 
 <script setup>
-import { buildRoutine, speechBetween } from '../../lib/routine.js';
-import { createSession } from '../../lib/session.js';
-import { MENU_ROWS, buildView, nextPace } from '../../lib/view.js';
+import wx from 'wx';
+import { VIDEOS } from '../../lib/videos.js';
+import { createPlayer } from '../../lib/player.js';
+import { buildView } from '../../lib/view.js';
 import { createTempleInput } from '../../lib/temple.js';
-import { loadSettings, saveSettings, storageOrNull } from '../../lib/env.js';
-
-const TICK_MS = 33;
 
 function parseQuery(query) {
   const input = query && typeof query === 'object' && !Array.isArray(query) ? query : {};
-  return {
-    autostart: input.autostart === true,
-    pace: input.pace === 'gentle' || input.pace === 'normal' ? input.pace : ''
-  };
+  const video = Number(input.video);
+  return { video: Number.isInteger(video) && video >= 1 && video <= 4 ? video : 0 };
+}
+
+// The video component reports { currentTime } directly or inside `detail`, depending on the host.
+function readTime(event) {
+  if (!event) return NaN;
+  if (typeof event.currentTime === 'number') return event.currentTime;
+  if (event.detail && typeof event.detail.currentTime === 'number') return event.detail.currentTime;
+  return NaN;
 }
 
 export default {
@@ -44,35 +45,22 @@ export default {
     runClass: 'screen screen-off',
     menuTitle: '',
     menuSub: '',
-    menuNote: '',
+    notice: '',
     menuHint: '',
-    r0Class: 'row row-0 is-focus',
-    r0Text: '',
-    r0State: '',
-    r1Class: 'row row-1',
-    r1Text: '',
-    r1State: '',
-    r2Class: 'row row-2',
-    r2Text: '',
-    r2State: '',
-    anchorStyle: 'left: 50%; top: 50%;',
-    dotStyle: 'width: 22px; height: 22px; left: -11px; top: -11px; border-radius: 11px; background-color: rgba(64, 255, 94, 1);',
+    r0Class: 'row row-0 is-focus', r0Text: '', r0State: '',
+    r1Class: 'row row-1', r1Text: '', r1State: '',
+    r2Class: 'row row-2 row-off', r2Text: '', r2State: '',
+    r3Class: 'row row-3 row-off', r3Text: '', r3State: '',
+    videoSrc: '',
     label: '',
-    counter: '',
-    title: '',
-    stepHint: '',
-    progressStyle: 'width: 0%;'
+    clock: '',
+    runHint: '',
+    overlayClass: 'overlay overlay-off'
   },
 
   onLoad(query) {
     const parsed = parseQuery(query);
-    this._storage = storageOrNull();
-    this._settings = loadSettings(this._storage);
-    if (parsed.pace !== '' && parsed.pace !== this._settings.pace) {
-      this._settings.pace = parsed.pace;
-      saveSettings(this._storage, this._settings);
-    }
-    this._session = createSession(buildRoutine(this._settings.pace));
+    this._player = createPlayer(VIDEOS);
     this._temple = createTempleInput({
       now: () => Date.now(),
       schedule: (fn, ms) => setTimeout(fn, ms),
@@ -80,32 +68,11 @@ export default {
       onLoneGlobalHook: () => this._primaryAction()
     });
     this._view = {};
-    this._focus = 0;
-    this._timer = null;
-    this._lastTickAt = 0;
-    this._lastFrame = null;
-    this._visible = false;
-    if (parsed.autostart) this._begin();
-    this._render();
-  },
-
-  onShow() {
-    this._visible = true;
-    if (this._session.phase() === 'running') this._startTimer();
-    this._render();
-  },
-
-  // Leaving the Page pauses the routine: the dot must never run on unseen.
-  onHide() {
-    this._visible = false;
-    this._stopTimer();
-    this._session.pause();
+    if (parsed.video > 0) this._player.play(parsed.video - 1);
     this._render();
   },
 
   onUnload() {
-    this._visible = false;
-    this._stopTimer();
     if (this._temple) this._temple.dispose();
   },
 
@@ -121,117 +88,64 @@ export default {
       if (typeof event.preventDefault === 'function') event.preventDefault();
       this._temple.gestureKeyUp();
       this._primaryAction();
-    } else if (code === 'ArrowUp') {
+    } else if (code === 'ArrowUp' || code === 'ArrowDown') {
       if (typeof event.preventDefault === 'function') event.preventDefault();
       this._temple.gestureKeyUp();
-      this._swipe(-1);
-    } else if (code === 'ArrowDown') {
-      if (typeof event.preventDefault === 'function') event.preventDefault();
-      this._temple.gestureKeyUp();
-      this._swipe(1);
+      this._swipe(code === 'ArrowUp' ? -1 : 1);
     } else if (code === 'GlobalHook') {
       this._temple.globalHookUp();
     }
     // Backspace keeps the host default: go back / close the agent.
   },
 
-  // ---- run control ---------------------------------------------------------------
+  // ---- video component events ----------------------------------------------------
 
-  _begin() {
-    this._session.start();
-    this._lastFrame = null;
-    if (this._visible) this._startTimer();
-  },
-
-  _startTimer() {
-    if (this._timer !== null) return;
-    this._lastTickAt = Date.now();
-    this._timer = setInterval(() => this._tick(), TICK_MS);
-  },
-
-  _stopTimer() {
-    if (this._timer === null) return;
-    clearInterval(this._timer);
-    this._timer = null;
-  },
-
-  _tick() {
-    const now = Date.now();
-    const dt = now - this._lastTickAt;
-    this._lastTickAt = now;
-    this._session.tick(dt);
-    const snap = this._session.snapshot();
-    if (snap.phase === 'running') {
-      this._cue(speechBetween(this._lastFrame, snap.frame));
-      this._lastFrame = snap.frame;
-    } else if (snap.phase === 'done') {
-      this._stopTimer();
-      this._cue('Well done. Blink slowly, then look far away.');
+  handleTime(event) {
+    const seconds = readTime(event);
+    if (!isNaN(seconds)) {
+      this._player.onTime(seconds);
+      this._render();
     }
+  },
+
+  handleEnded() {
+    this._player.onEnded();
     this._render();
   },
 
-  // ---- input ---------------------------------------------------------------------
+  handleError() {
+    this._player.onError();
+    this._render();
+  },
+
+  // ---- input -----------------------------------------------------------------------
 
   _primaryAction() {
-    const phase = this._session.phase();
-    if (phase === 'running' || phase === 'paused') {
-      this._session.toggle();
-      if (this._session.phase() === 'running') {
-        if (this._visible) this._startTimer();
-      } else {
-        this._stopTimer();
-      }
-      this._render();
-      return;
-    }
-    if (this._focus === 0) {
-      this._begin();
-    } else if (this._focus === 1) {
-      this._settings.pace = nextPace(this._settings.pace);
-      saveSettings(this._storage, this._settings);
-      this._session.setRoutine(buildRoutine(this._settings.pace));
-    } else {
-      this._settings.voice = !this._settings.voice;
-      saveSettings(this._storage, this._settings);
-      if (this._settings.voice) this._speak('Voice cues on');
-    }
+    const action = this._player.tap();
+    if (action === 'pause') this._withVideo((video) => video.pause());
+    else if (action === 'resume') this._withVideo((video) => video.play());
     this._render();
+  },
+
+  // The video context is looked up when it is needed, like AIUI's own video sample does.
+  _withVideo(action) {
+    const video = typeof wx.createVideoContext === 'function' ? wx.createVideoContext('player') : null;
+    if (video) action(video);
   },
 
   // delta -1 is the forward swipe (ArrowUp), +1 the backward swipe (ArrowDown).
   _swipe(delta) {
-    const phase = this._session.phase();
-    if (phase === 'running' || phase === 'paused') {
-      if (delta > 0) this._session.next();
-      else this._session.prev();
-      this._lastFrame = null;
-      if (this._session.phase() === 'done') {
-        this._stopTimer();
-        this._cue('Well done. Blink slowly, then look far away.');
-      }
+    const snap = this._player.snapshot();
+    if (snap.screen === 'player') {
+      this._withVideo((video) => video.pause());
+      this._player.back();
     } else {
-      this._focus = (this._focus + delta + MENU_ROWS) % MENU_ROWS;
+      this._player.moveFocus(delta);
     }
     this._render();
   },
 
-  // ---- feedback ------------------------------------------------------------------
-
-  _cue(text) {
-    if (text !== '') this._speak(text);
-  },
-
-  _speak(text) {
-    if (!this._settings.voice) return;
-    try {
-      if (typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance === 'function') {
-        speechSynthesis.speak(new SpeechSynthesisUtterance(text), 'immediate');
-      }
-    } catch (_) {}
-  },
-
-  // ---- view ----------------------------------------------------------------------
+  // ---- view ------------------------------------------------------------------------
 
   // Sends only the keys whose value changed since the last push.
   _push(patch) {
@@ -248,14 +162,7 @@ export default {
   },
 
   _render() {
-    const snap = this._session.snapshot();
-    this._push(buildView({
-      phase: snap.phase,
-      frame: snap.frame,
-      routine: this._session.routine(),
-      settings: this._settings,
-      focusIndex: this._focus
-    }));
+    this._push(buildView(this._player.snapshot()));
   }
 };
 </script>
@@ -267,7 +174,7 @@ export default {
       <text class="eyebrow">EYE BREAK</text>
       <text class="menu-title">{{menuTitle}}</text>
       <text class="menu-sub">{{menuSub}}</text>
-      <text class="menu-note">{{menuNote}}</text>
+      <text class="menu-notice">{{notice}}</text>
       <view class="rows">
         <view class="{{r0Class}}">
           <text class="row-text">{{r0Text}}</text>
@@ -281,26 +188,33 @@ export default {
           <text class="row-text">{{r2Text}}</text>
           <text class="row-state">{{r2State}}</text>
         </view>
+        <view class="{{r3Class}}">
+          <text class="row-text">{{r3Text}}</text>
+          <text class="row-state">{{r3State}}</text>
+        </view>
       </view>
       <text class="menu-hint">{{menuHint}}</text>
     </view>
 
     <view class="{{runClass}}">
-      <view class="top">
-        <text class="label">{{label}}</text>
-        <text class="counter">{{counter}}</text>
-      </view>
-      <view class="arena">
-        <view class="anchor" style="{{anchorStyle}}">
-          <view class="dot" style="{{dotStyle}}"></view>
+      <video
+        id="player"
+        class="video"
+        src="{{videoSrc}}"
+        autoplay="true"
+        muted="true"
+        volume="0"
+        object-fit="contain"
+        bindtimeupdate="handleTime"
+        bindended="handleEnded"
+        binderror="handleError"
+      ></video>
+      <view class="{{overlayClass}}">
+        <view class="overlay-top">
+          <text class="label">{{label}}</text>
+          <text class="clock">{{clock}}</text>
         </view>
-      </view>
-      <view class="bottom">
-        <view class="bar">
-          <view class="bar-fill" style="{{progressStyle}}"></view>
-        </view>
-        <text class="step-title">{{title}}</text>
-        <text class="step-hint">{{stepHint}}</text>
+        <text class="run-hint">{{runHint}}</text>
       </view>
     </view>
   </view>
@@ -366,17 +280,18 @@ export default {
   color: rgba(64, 255, 94, 0.72);
 }
 
-.menu-note {
+.menu-notice {
   margin-top: 2px;
+  min-height: 16px;
   font-size: 12px;
   line-height: 16px;
-  color: rgba(64, 255, 94, 0.48);
+  color: #40ff5e;
 }
 
 .rows {
   display: flex;
   flex-direction: column;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .row {
@@ -389,6 +304,10 @@ export default {
   border: 1px solid rgba(64, 255, 94, 0.32);
   border-radius: 6px;
   box-sizing: border-box;
+}
+
+.row-off {
+  display: none;
 }
 
 .row.is-focus {
@@ -406,6 +325,7 @@ export default {
 .row-state {
   font-size: 13px;
   line-height: 20px;
+  font-family: monospace;
   color: rgba(64, 255, 94, 0.72);
 }
 
@@ -416,13 +336,34 @@ export default {
   color: rgba(64, 255, 94, 0.48);
 }
 
-.top {
+.video {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.overlay {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.overlay-off {
+  display: none;
+}
+
+.overlay-top {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  flex-shrink: 0;
-  height: 22px;
 }
 
 .label {
@@ -433,75 +374,32 @@ export default {
   color: #40ff5e;
 }
 
-.counter {
+.clock {
   font-size: 12px;
   line-height: 16px;
-  color: rgba(64, 255, 94, 0.48);
+  font-family: monospace;
+  color: rgba(64, 255, 94, 0.72);
 }
 
-.arena {
-  position: relative;
-  flex: 1 1 0;
-  min-height: 0;
-}
-
-.anchor {
-  position: absolute;
-  width: 0px;
-  height: 0px;
-}
-
-.dot {
-  position: absolute;
-  background-color: #40ff5e;
-}
-
-.bottom {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.bar {
-  height: 2px;
-  background-color: rgba(64, 255, 94, 0.24);
-}
-
-.bar-fill {
-  height: 2px;
-  background-color: #40ff5e;
-}
-
-.step-title {
-  margin-top: 4px;
-  font-size: 15px;
-  line-height: 20px;
-  font-weight: 500;
-  color: #40ff5e;
-}
-
-.step-hint {
-  font-size: 12px;
-  line-height: 16px;
-  color: rgba(64, 255, 94, 0.48);
+.run-hint {
+  font-size: 11px;
+  line-height: 14px;
+  color: rgba(64, 255, 94, 0.72);
 }
 
 @media (max-height: 240px) {
   .screen {
     padding: 6px 10px;
   }
+  .menu-icon {
+    display: none;
+  }
   .menu-title {
     margin-top: 2px;
     font-size: 20px;
     line-height: 24px;
   }
-  .menu-icon {
-    display: none;
-  }
   .menu-sub {
-    display: none;
-  }
-  .menu-note {
     display: none;
   }
   .menu-hint {
@@ -510,17 +408,14 @@ export default {
   .rows {
     margin-top: 6px;
   }
-  .row-1 {
-    display: none;
-  }
   .row-2 {
     display: none;
   }
-  .step-hint {
+  .row-3 {
     display: none;
   }
-  .step-title {
-    margin-top: 2px;
+  .run-hint {
+    display: none;
   }
 }
 </style>

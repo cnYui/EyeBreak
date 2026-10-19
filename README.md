@@ -1,53 +1,71 @@
 # Eye Break
 
-A guided eye break for Rokid Glasses (AIUI 0.17, monochrome green, 480 × 352). A small dot moves on the display and you follow it with your eyes: left and right, up and down, diagonals, circles, near and far, then a short rest. It is the glasses version of a simple eye-exercise routine for the moment your eyes feel tired after a long time at a screen.
+A small player of **silent relaxation videos** for Rokid Glasses (AIUI 0.17, monochrome green, 480 × 352), for the moment your eyes feel tired after a long time at a screen. The first screen lists the videos; pick one and it plays, muted, until it ends. There is no sound and no background music anywhere in the app.
 
-Status: **built, imported into AIUI Studio (international version) and run in its glasses simulator, in the AIX browser preview and with unit tests. It has not been run on glasses.** See [Verified](#verified) and [Not verified](#not-verified).
+> This is a relaxation aid, not a medical treatment. It does not diagnose, treat or prevent any eye condition and makes no claim about eyesight. Sit still while you use it; do not use it while walking or driving. Stop if you feel dizzy, nauseous or any pain, and see an eye-care professional if discomfort persists.
 
-> This is a relaxation routine, not a medical treatment. It does not diagnose, treat or prevent any eye condition. Sit still while you use it; do not use it while walking or driving. Stop if you feel dizzy, nauseous or any pain, and see an eye-care professional if discomfort persists.
+Status: **the player is built and was checked in unit tests, the AIX browser preview and (for the earlier dot version only) the Studio simulator. The two clips that ship right now are synthetic test patterns, not the real videos.** The real clips are added with `scripts/prepare-videos.js` (see [Adding the videos](#adding-the-videos)). Nothing has been run on glasses.
+
+History: the first version of this project was a guided dot-following routine. It was dropped on request; the video player replaced it (its code is in the git history).
 
 ## How to use it
 
-Open the agent (say "my eyes are tired" or "start the eye break" once the agent is installed). The first screen has three rows:
-
-| Row | Tap |
-| --- | --- |
-| **Start** | Begins the routine (about 2 minutes) |
-| **Pace** | Switches Normal ⇄ Gentle (40 % slower, about 3 minutes) |
-| **Voice cues** | Switches the spoken cues on or off |
-
-Temple controls (the key mapping comes from measurements in the sibling WorkHealthier project and is unverified on glasses here):
-
-| Action | Before and after a run | During a run |
-| --- | --- | --- |
-| Tap (`GlobalHook` then `Enter`) | Choose the focused row | Pause or resume |
-| Swipe forward (`ArrowUp`) | Focus up | Previous step (restarts the current step if you are more than 2.5 s into it) |
-| Swipe back (`ArrowDown`) | Focus down | Next step; past the last step it finishes |
-| Double tap | Host default: exit | Host default: exit |
-
-During a run the top line shows the direction cue (`LEFT`, `RIGHT`, `UP`, `CLOCKWISE`, `NEAR`, `FAR`, …) and `step/7 · time left`; the bottom shows a progress bar, the step name and a one-line instruction. When paused the cue line says `PAUSED` and the controls are listed. Leaving the Page (hide) pauses the routine so the dot never runs on while you are not looking.
-
-Optional parameters when the agent is opened: `autostart: true` begins at once, `pace: "gentle"` selects the slower pace (remembered).
-
-## The routine
-
-Times are for Normal; Gentle multiplies every step by 1.4. The dot starts and ends every step in the middle.
-
-| # | Step | Time | What the dot does |
+| Where | Tap | Swipe (either way) | Double tap |
 | --- | --- | --- | --- |
-| 1 | Get ready | 5 s | Stays in the middle: "Blink slowly" |
-| 2 | Left and right | 18.5 s | Middle → left → right → left → right → middle, pausing about 1 s at each end |
-| 3 | Up and down | 18.5 s | The same, vertically |
-| 4 | Diagonals | 17.7 s | Up-left ⇄ down-right, then up-right ⇄ down-left |
-| 5 | Circles | 26.9 s | Two rounds clockwise, two rounds counter-clockwise, at constant speed |
-| 6 | Near and far | 25 s | The dot grows and brightens (**NEAR**: focus on the dot), then shrinks and dims (**FAR**: look past it at the farthest thing you can see), three near and two far phases |
-| 7 | Rest | 10.4 s | The dot disappears: "Close your eyes", then "Open" |
+| List | Play the focused video | Move the focus (wraps around) | Exit (host default) |
+| Playing | Pause / resume | Back to the list | Exit (host default) |
 
-Total 2:02 at Normal and 2:51 at Gentle (the menu rounds these to "about 2 min" and "about 3 min").
+The key mapping (tap = `GlobalHook` then `Enter`, swipes = `ArrowUp` / `ArrowDown`) comes from measurements in the sibling WorkHealthier project and was confirmed for this project in the Studio simulator for the earlier version; it is unverified on glasses.
 
-The cue for a movement is announced (on screen and by voice) when the dot **starts** to move that way, so your eyes lead rather than chase. Motion is eased at both ends. The peak speed is about 250 px/s at Normal (the diagonal sweep) and 180 px/s at Gentle, measured on a 448 × 268 px arena; a unit test fails above 270 px/s. How many degrees per second that is on the glasses depends on their field of view and has not been measured.
+While a video plays, nothing is drawn over it except, for the first four seconds and whenever it is paused, a one-line control hint and the position (`0:12 / 3:05`); a paused video also shows `PAUSED`. When the video ends the app returns to the list and says `Finished`. If a video cannot be played it returns to the list and says so. Leaving the Page (hide) pauses the video (the `<video>` component does this by itself).
 
-An honest note on "near and far": the display shows its image at one fixed optical distance, so the dot cannot make your eyes focus nearer or farther by itself. The size and brightness change is a cue; the actual change of focus comes from looking past the dot at something far away. The finish screen suggests looking at something far away for 20 seconds, in line with the commonly recommended 20-20-20 habit; the app does not remind you to do so (see Limits).
+Optional parameter when the agent is opened: `video: 2` plays the second video right away.
+
+## Adding the videos
+
+The Page plays what is listed in `agent/lib/videos.js`, which is generated. `<video>` in AIUI plays only progressive MP4 with H.264 (no HLS, no streaming sites), so source videos have to be converted. Needs `ffmpeg` and `ffprobe` on the PATH.
+
+```bash
+# real videos: put the source files in videos/ (git-ignored) and name which is which
+node scripts/prepare-videos.js 1=videos/first.mp4 2=videos/second.mp4
+
+# synthetic test clips instead (what is committed now)
+node scripts/prepare-videos.js --placeholder 2 --seconds 8
+```
+
+Each clip is re-encoded to `agent/assets/videos/relax-N.mp4`: **no audio track at all**, H.264 Main profile, progressive with the index at the front, at most 480 × 352 and 30 fps. The list titles are the neutral `Relax 1`, `Relax 2`, … (up to four videos); no claims are made in the app. `npm test` checks that every listed file exists with the recorded size, is a progressive MP4 and has no sound track.
+
+**Rights:** the videos you add belong to their authors. This repository is public, and a package submitted to the agent store is distributed to users, so only add videos you are allowed to redistribute; the unprocessed sources in `videos/` are never committed.
+
+## Icon
+
+A pixel-art eye that looks up and to the right at a glowing guide dot, drawn in code on a 32 × 32 grid (`scripts/make-icon.js`) and written in three sizes; `node scripts/make-icon.js` regenerates them and a test fails if the committed files drift from the script.
+
+| File | Use |
+| --- | --- |
+| `assets/icon/eyebreak-icon-512.png` | **The agent icon for AIUI Studio.** Full colour, square, fully opaque, 16 × 16 px blocks. |
+| `assets/icon/eyebreak-icon-128.png` | The same at 128 × 128 for small previews. |
+| `agent/assets/eye.png` | Shown top right on the Page's first screen. Monochrome green on a transparent background (the display is green-only and black is see-through), 64 × 64 so each art pixel is exactly 2 × 2. Hidden in the compact chat-card layout. |
+
+Studio does not read the agent icon from the repository; it is uploaded on the **Real-device debug** tab, section **Basic information**: *Agent icon* → *Change icon*, a 1:1 image is recommended.
+
+## Test on the glasses
+
+From the AIUI documentation (`craft.en-US.md`, "Debug on Glasses"); these steps have not been carried out for this project yet.
+
+1. In Studio (the international version, https://aiui-global.rokid.com/), open the **Real-device debug** tab for the imported project and fill in *Agent name* (20 characters at most; `Eye Break`), *App category* (required) and *Intent description* (**keep it at 248 characters or fewer**: longer text is rejected by the save call even though the box allows 500); change the icon; then **Package and save**. Real-device debugging is only available after the project is bound to an agent and has been packaged and uploaded.
+2. In the Rokid AI app on the phone: **Settings > Developer**, update the glasses resource package, and wait for "Agent resource package downloaded successfully".
+3. Say to the glasses: "Leqi, open the Eye Break agent."
+4. What to look at: that the list and the pixel eye show, that a video starts by itself, is silent, and looks right on the display (size, brightness against the real scene), tap / swipe / double tap, and that the end of a video returns to the list.
+
+## Try it in AIUI Studio
+
+Use the international Studio, **https://aiui-global.rokid.com/** (sign in with your Rokid account first).
+
+1. Top left, the **New Agent** menu → **GitHub import** (the fourth item).
+2. Enter `https://github.com/cnYui/EyeBreak/tree/main/agent` and confirm. The import root is the repository's `agent/` folder. The project opens as a draft marked "pending upload"; the remote source is read-only and nothing is written back to GitHub. Importing the same URL again updates it.
+3. On the **AIUI CODING** tab send `/debug run pages/eye/index`, then open the **Simulator** tab. The Page starts in the glasses simulator.
+4. The temple buttons on the right drive it: Tap, Double tap, Swipe forward and Swipe back. Wait two seconds between presses.
 
 ## Try it without glasses
 
@@ -59,82 +77,46 @@ npx --yes --package @yodaos-pkg/aix-cli@0.8.2 aix preview agent --html-out artif
 python -m http.server 8767 --directory artifacts      # then open http://127.0.0.1:8767/preview.html
 ```
 
-In the preview use the on-page buttons or the keyboard: Enter = tap, ↑ / ↓ = swipes. Keep the browser tab in the foreground: a hidden tab throttles timers and the dot stalls (a hidden run measured one frame per second).
-
-## Icon
-
-A pixel-art eye that looks up and to the right at a glowing guide dot, which is what the app does. It is drawn in code on a 32 × 32 grid (`scripts/make-icon.js`) and written in three sizes; `node scripts/make-icon.js` regenerates them and a test fails if the committed files drift from the script.
-
-| File | Use |
-| --- | --- |
-| `assets/icon/eyebreak-icon-512.png` | **The agent icon for AIUI Studio.** Full colour, square, fully opaque, 16 × 16 px blocks. |
-| `assets/icon/eyebreak-icon-128.png` | The same at 128 × 128 for small previews. |
-| `agent/assets/eye.png` | Shown top right on the Page's first screen. Monochrome green on a transparent background (the display is green-only and black is see-through), 64 × 64 so each art pixel is exactly 2 × 2 and nothing is scaled. Hidden in the compact chat-card layout. |
-
-Studio does **not** read the agent icon from the repository; it is uploaded in Studio. In the international Studio it is on the **Real-device debug** tab, section **Basic information**: *Agent icon* → *Change icon*, a 1:1 image is recommended. The same tab asks for the agent name, the app category (required), an intent description, and has the **Package and save** button. The review documentation requires a custom icon that is clear, correctly oriented and not a plain colour or a colour with text. Upload `assets/icon/eyebreak-icon-512.png` there; that has not been done yet.
-
-## Test on the glasses
-
-From the AIUI documentation (`craft.en-US.md`, "Debug on Glasses"); these steps have not been carried out for this project yet.
-
-1. In Studio, open the **Real-device debug** tab for the imported project and fill in *Agent name* (20 characters at most; `Eye Break`), *App category* (required) and *Intent description* (keep it under about 250 characters: longer text is rejected by the save call even though the box allows 500); change the icon; then **Package and save**. Real-device debugging is only available after the project is bound to an agent and has been packaged and uploaded.
-2. In the Rokid AI app on the phone: **Settings > Developer**, update the glasses resource package, and wait for "Agent resource package downloaded successfully".
-3. Say to the glasses: "Leqi, open the Eye Break agent."
-4. What to look at: the pixel eye at the top right of the first screen, whether the dot is comfortable to follow (size, speed, travel range), the cue labels, the spoken cues, tap / swipe / double tap, and how the green dot looks against the real scene.
-
-## Try it in AIUI Studio
-
-Use the international Studio, **https://aiui-global.rokid.com/** (sign in with your Rokid account first).
-
-1. Top left, the **New Agent** menu → **GitHub import** (the fourth item).
-2. Enter `https://github.com/cnYui/EyeBreak/tree/main/agent` and confirm. The import root is the repository's `agent/` folder. The project opens as a draft marked "pending upload"; the remote source is read-only and nothing is written back to GitHub. Importing the same URL again updates it.
-3. On the **AIUI CODING** tab send `/debug run pages/eye/index`, then open the **Simulator** tab. The Page starts in the glasses simulator.
-4. The temple buttons on the right drive it: Tap, Double tap, Swipe forward and Swipe back. Wait two seconds between presses.
-
-Spoken cues show up in the simulator as a "TTS" banner (for example `Left`).
+In the preview use the on-page buttons or the keyboard: Enter = tap, ↑ / ↓ = swipes. Keep the browser tab in the foreground.
 
 ## Layout
 
 ```text
 agent/                      AIUI Studio import root
   app.json, AGENTS.md       manifest (no permissions), agent identity and safety wording
-  pages/eye/index.ink       the only Page: menu screen and run screen, timer, input, speech
-  lib/routine.js            the routine as data: tracks of timed moves, holds and circles
-  lib/session.js            ready → running ⇄ paused → done controller
+  pages/eye/index.ink       the only Page: video list and silent player
+  lib/player.js             list / player state (focus, pause, position, end, error)
   lib/view.js, text.js      view model and width budgets (long text is cut in JS, not by CSS)
-  lib/env.js, temple.js     remembered settings, temple input arbitration
-  assets/eye.png            the pixel eye shown on the first screen (monochrome green, 64 x 64)
-assets/icon/                the colour agent icon for AIUI Studio (512 x 512 and 128 x 128)
-scripts/make-icon.js        draws the pixel art and writes all three PNG files (no dependencies)
-tests/                      47 Node tests (npm test)
+  lib/videos.js             GENERATED list of the bundled clips
+  lib/temple.js             temple input arbitration
+  assets/videos/            GENERATED silent MP4 clips
+  assets/eye.png            the pixel eye shown on the first screen (64 x 64)
+assets/icon/                the colour agent icon for AIUI Studio
+scripts/prepare-videos.js   converts source videos into the clips and writes the list
+scripts/make-icon.js        draws the pixel art and writes the PNG files
+tests/                      Node tests (npm test)
+videos/                     your source videos (git-ignored, created by you)
 ```
 
 ## Verified
 
-2026-10-19, Windows 11, Node 24, `@yodaos-pkg/aix-cli` 0.8.2, AIUI 0.17.0 target:
+2026-10-19, Windows 11, Node 24, ffmpeg 8.0, `@yodaos-pkg/aix-cli` 0.8.2, AIUI 0.17.0 target:
 
-- `npm test`: 47 passing: the icon (grid, palette, valid PNGs, committed files match the generator), the routine (seven steps, about 2 minutes, Gentle ×1.4, the dot stays inside the arena, every step joins at the centre, speed limit, cue timing, circle direction and radius, near/far size and brightness, the rest step hides the dot, speech phrases), the session controller (pause, resume, skip, restart, the 250 ms tick cap, finish), the view model and every text against its width budget.
-- `validate_aiui_project.py agent --repository-root . --target-version 0.17.0 --strict`: exit 0. `aix pack`: 25 KB bundle.
-- AIX browser preview (web runtime): menu, a run through the steps with the dot at the expected places (centre, far left, far right, a diagonal, a point on the circle, large "near" dot, small "far" dot, hidden during rest), the label and `step/7 · time left` counter, progress bar, pause and resume, skipping steps, the "Well done" screen, switching to Gentle (menu then says about 3 min). Dynamic `style` binding with percentage positions and border-radius circles works; `setData` at about 30 fps with a worst gap of 34–58 ms in the preview.
-- Voice cues reach `speechSynthesis` (the web preview reports `speech.speak is not configured on Web host`, so nothing is audible there).
-- **AIUI Studio, international version (2026-10-19)**: the GitHub import of `…/EyeBreak/tree/main/agent` worked; `/debug run pages/eye/index` started the Page in the simulator. Through the simulator's temple buttons: Tap started the routine, Get ready and then Left and right ran by themselves with the dot, cue, counter and progress bar updating; Tap paused (`PAUSED`, controls listed) and resumed; Swipe back stepped through Diagonals, Circles, Near and far (large dot) and Rest (dot hidden, `CLOSE YOUR EYES`) and past the end to the "Well done" screen; Swipe back plus Tap switched Pace to Gentle ("about 3 min"); Double tap exited to the glasses home screen. The simulator showed the spoken cues as a "TTS" banner (`Left`, and `Well done. Blink slowly, then look far away.`). The Page is laid out by percentages, so it adapts to the simulator's portrait frame (roughly 4:5), which is not the 480 × 352 of the browser preview.
+- `npm test`: passing: the list / player state machine, the view model and every text against its width budget, that the Page mutes the video and uses no speech or audio API, the video manifest (files exist with the recorded size, progressive MP4, no sound track), the icon files, the temple input.
+- Strict project validation (`validate_aiui_project.py … --strict`) exit 0; `aix pack` works.
+- AIX browser preview (web runtime), with synthetic test clips: the list with the pixel eye; Tap starts a clip and it plays in the 480 × 352 screen; Tap pauses it (the video really stops, `PAUSED` and the hint show) and resumes it; Swipe in the player returns to the list with that video focused; a clip that ends returns to the list with `Finished`. The first attempt at pausing only changed the label and the video kept playing, because the video control was looked up once at start-up; it is now looked up when used, as AIUI's own video sample does.
+- Earlier, for the dot version, the Page ran in the international Studio simulator and the agent was saved to the Studio cloud (see `CLAUDE.md` for the save problem and its cause).
 
 ## Not verified
 
-- **Rokid Glasses hardware**: nothing. Open questions: how large the dot looks (22 px at scale 1 is a guess in degrees), whether the travel range is comfortable, real frame rate and smoothness with `setInterval` at 33 ms (AIUI 0.17 has no `requestAnimationFrame`), whether the dot over the real scene is easy to see in daylight, temple mapping, and the speech cues.
-- Speech audio: Studio only shows the cues as text banners; whether they are audible, and how they sound, is untested.
-- The compact 448 × 150 chat-card layout (`@media (max-height: 240px)`): written, never viewed.
-- `autostart` and `pace` parameters, and "pause when hidden", are covered by code and unit tests of the controller but were not exercised through the host.
-- **Studio cloud save works (2026-10-19) as long as the intent description is about 250 characters or fewer.** The page allows 500, but its save call (`updateThirdAgent`) answers HTTP 200 with business code 10001 (a "system exception" message in Chinese, `data` null) for descriptions of 295, 431, 438 and 447 characters, whatever they contain (plain letters and full stops fail too, so quotes and punctuation are not the cause), and succeeds for 0, 56, 246 and 248 characters. The real limit lies between 248 and 294; 255 would be the usual guess and was not probed. The name `Eye Break` and the custom icon were never the problem. Saved state: agent `115a4b9d689843a78a08badeb7d98505`, name `Eye Break`, category Life, the pixel icon, cloud version 1.0.8, intent description: "Use when the wearer feels tired or strained eyes after long screen time, or asks for an eye break or exercise. Guides a two minute routine: a dot moves on the display and the wearer follows it with their eyes. Relaxation only, not medical advice." The status banner of the real-device debug tab then said the debug version is ready. Real-device debugging itself has not been tried. Notes: a save pressed on a form that Studio had just reset to the cloud values (name `cnYui/BreakTime`, blank description, default icon) stored blank metadata as version 1.0.3, and one click sometimes fires two saves, so the version number jumped from 1.0.3 to 1.0.8 during the experiments.
-- The first-screen icon was seen in the AIX browser preview and in the Studio simulator (after re-importing the same URL, which updated the project in place); not on glasses, where its brightness against the real scene is unknown.
-- Whether the routine actually relieves eye discomfort. Nothing in this project tests that, and it makes no such claim.
+- **Real videos**: none have been added yet. Their size, length, picture quality on the display and whether H.264 at 480 × 352 plays smoothly on the glasses are unknown; so is the size limit for a package with videos in it.
+- **The video version in AIUI Studio's simulator**, and the agent's Studio cloud record still describes the dot routine until it is updated and saved again.
+- **Rokid Glasses hardware**: nothing.
+- Muted autoplay on the glasses: the `<video>` tag is `autoplay`, `muted` and `volume="0"` and the clips have no audio, but the host's autoplay behaviour was only seen in the web preview.
+- The compact 448 × 150 chat-card layout: written, never viewed.
+- Whether watching any video relieves eye discomfort. Nothing here tests that, and the app makes no such claim.
 
 ## Limits
 
-- No reminders: AIUI 0.17 pages only run while they are shown, so Eye Break cannot nudge you after 20 minutes of screen time. You start it yourself.
-- It does not measure your eyes or gaze; the glasses have no eye tracking, so it cannot tell whether you are actually following the dot.
-- Near/far is a visual cue, as explained above.
-
-## Ideas for later
-
-Gaze-free but useful additions: a configurable length (one-minute version), a "20-20-20" countdown screen, a shortcut that starts from the WorkHealthier session reminder, a left-handed swipe mapping, and an optional Chinese UI (this project is English-only by request).
+- Updates only while the Page is shown: AIUI 0.17 pages do not run in the background, so there are no reminders.
+- Up to four videos; progressive MP4 (H.264) only; the package size grows with the clips.
