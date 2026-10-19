@@ -4,7 +4,7 @@ A small player of **silent relaxation videos** for Rokid Glasses (AIUI 0.17, mon
 
 > This is a relaxation aid, not a medical treatment. It does not diagnose, treat or prevent any eye condition and makes no claim about eyesight. Sit still while you use it; do not use it while walking or driving. Stop if you feel dizzy, nauseous or any pain, and see an eye-care professional if discomfort persists.
 
-Status: **the player is built and was checked in unit tests, the AIX browser preview and (for the earlier dot version only) the Studio simulator. The two clips that ship right now are synthetic test patterns, not the real videos.** The real clips are added with `scripts/prepare-videos.js` (see [Adding the videos](#adding-the-videos)). Nothing has been run on glasses.
+Status: **the player is built and was checked in unit tests, the AIX browser preview and the international Studio simulator, and the agent is saved in the Studio cloud (version 1.0.9). The two clips that ship right now are synthetic test patterns, not the real videos.** The real clips are added with `scripts/prepare-videos.js` (see [Adding the videos](#adding-the-videos)). Nothing has been run on glasses.
 
 History: the first version of this project was a guided dot-following routine. It was dropped on request; the video player replaced it (its code is in the git history).
 
@@ -105,12 +105,14 @@ videos/                     your source videos (git-ignored, created by you)
 - `npm test`: passing: the list / player state machine, the view model and every text against its width budget, that the Page mutes the video and uses no speech or audio API, the video manifest (files exist with the recorded size, progressive MP4, no sound track), the icon files, the temple input.
 - Strict project validation (`validate_aiui_project.py … --strict`) exit 0; `aix pack` works.
 - AIX browser preview (web runtime), with synthetic test clips: the list with the pixel eye; Tap starts a clip and it plays in the 480 × 352 screen; Tap pauses it (the video really stops, `PAUSED` and the hint show) and resumes it; Swipe in the player returns to the list with that video focused; a clip that ends returns to the list with `Finished`. The first attempt at pausing only changed the label and the video kept playing, because the video control was looked up once at start-up; it is now looked up when used, as AIUI's own video sample does.
-- Earlier, for the dot version, the Page ran in the international Studio simulator and the agent was saved to the Studio cloud (see `CLAUDE.md` for the save problem and its cause).
+- **International Studio simulator (video version, synthetic clips):** after re-importing the same URL the Page showed the list with the pixel eye; Tap started a clip, which played by itself and silently (no TTS banner appeared at any point); the clip ending returned to the list with `Finished`; Swipe back moved the list focus. Pausing was not exercised there: the 8-second clips are shorter than the delay between simulator presses.
+- **Studio cloud:** the agent `Eye Break` (category Life, pixel icon) was saved with a 220-character intent description about silent videos: save result `code 1 success`, cloud version 1.0.9, and the real-device debug tab reports the debug version as ready. Real-device debugging has not been tried.
 
 ## Not verified
 
 - **Real videos**: none have been added yet. Their size, length, picture quality on the display and whether H.264 at 480 × 352 plays smoothly on the glasses are unknown; so is the size limit for a package with videos in it.
-- **The video version in AIUI Studio's simulator**, and the agent's Studio cloud record still describes the dot routine until it is updated and saved again.
+- Pause and resume in the Studio simulator (only seen in the browser preview, with longer test clips).
+- The packaged AIX in the Studio cloud was built from the Studio draft after re-importing this repository's `agent/` folder; its contents were not downloaded and inspected.
 - **Rokid Glasses hardware**: nothing.
 - Muted autoplay on the glasses: the `<video>` tag is `autoplay`, `muted` and `volume="0"` and the clips have no audio, but the host's autoplay behaviour was only seen in the web preview.
 - The compact 448 × 150 chat-card layout: written, never viewed.
